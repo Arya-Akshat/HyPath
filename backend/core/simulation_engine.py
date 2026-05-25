@@ -108,23 +108,25 @@ class SimulationEngine:
         while self.running:
             try:
                 cond = self.emulator.conditions
+                import random
+                noise = lambda: random.uniform(0.95, 1.05)
                 # TCP: higher latency (overhead/retransmits), reliable delivery
                 tcp_m = PathMetrics(
                     path_id=0,
                     protocol=Protocol.TCP,
-                    rtt=(cond.latency_ms * 1.2 + (cond.packet_loss_rate * 200)) / 1000.0,
-                    jitter=(cond.jitter_ms * 1.1) / 1000.0,
+                    rtt=((cond.latency_ms * 1.2 + (cond.packet_loss_rate * 200)) / 1000.0) * noise(),
+                    jitter=((cond.jitter_ms * 1.1) / 1000.0) * noise(),
                     loss_rate=0.0,
-                    throughput=cond.bandwidth_mbps * 0.9
+                    throughput=(cond.bandwidth_mbps * 0.9) * noise()
                 )
                 # UDP: lower latency, but experiences actual loss
                 udp_m = PathMetrics(
                     path_id=1,
                     protocol=Protocol.UDP,
-                    rtt=cond.latency_ms / 1000.0,
-                    jitter=cond.jitter_ms / 1000.0,
-                    loss_rate=cond.packet_loss_rate,
-                    throughput=cond.bandwidth_mbps
+                    rtt=(cond.latency_ms / 1000.0) * noise(),
+                    jitter=(cond.jitter_ms / 1000.0) * noise(),
+                    loss_rate=cond.packet_loss_rate * noise(),
+                    throughput=cond.bandwidth_mbps * noise()
                 )
                 self.scheduler.update_tcp_metrics(tcp_m)
                 self.scheduler.update_udp_metrics(udp_m)
@@ -142,6 +144,9 @@ class SimulationEngine:
         await self.udp_server.stop()
         await self.tcp_client.disconnect()
         await self.udp_client.disconnect()
+        
+        # Empty the send queue to prevent backlog on restart
+        self.send_queue = asyncio.Queue()
         
         # End metrics session
         self.metrics_collector.end_session(self.session_id)
@@ -170,7 +175,16 @@ class SimulationEngine:
         while self.running:
             try:
                 packet = await asyncio.wait_for(self.send_queue.get(), timeout=0.1)
-                await self._send_packet(packet)
+                
+                # Sequential bandwidth bottleneck
+                if self.emulator.conditions.bandwidth_mbps > 0:
+                    packet_size_bits = len(packet.payload) * 8
+                    bandwidth_bps = self.emulator.conditions.bandwidth_mbps * 1_000_000
+                    transmission_time = packet_size_bits / bandwidth_bps
+                    await asyncio.sleep(transmission_time)
+                
+                # Concurrent latency and delivery
+                asyncio.create_task(self._send_packet(packet))
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
@@ -198,29 +212,30 @@ class SimulationEngine:
             "sequence": packet.sequence_number
         })
         
+        # Track for retransmission FIRST (before network wire)
+        await self.retransmission_mgr.send_packet(packet)
+        
         # Apply network emulation
         emulated_packet = await self.emulator.process_packet(packet)
         
         if emulated_packet is None:
-            # Packet dropped by emulator
+            # Packet dropped by emulator (lost on the wire)
             self.metrics_collector.record_packet_lost(self.session_id)
             await self._emit_event("packet_dropped", {
                 "packet_id": packet.packet_id,
                 "reason": "network_emulation"
             })
             return
-        
-        # Send through selected protocol
+            
+        # Send through selected protocol to the actual receiver
         success = False
         if selected_protocol == Protocol.TCP:
             success = await self.tcp_client.send_packet(emulated_packet)
         else:
             success = await self.udp_client.send_packet(emulated_packet)
-        
-        if success:
-            # Track for retransmission
-            await self.retransmission_mgr.send_packet(emulated_packet)
-        else:
+            
+        if not success:
+            # Dropped locally (e.g. socket error)
             self.metrics_collector.record_packet_lost(self.session_id)
     
     async def _retransmit_packet(self, packet: Packet):
@@ -232,11 +247,18 @@ class SimulationEngine:
             "retransmission_count": packet.retransmission_count
         })
         
-        # Resend packet
+        # Resend packet through emulator
+        emulated_packet = await self.emulator.process_packet(packet)
+        
+        if emulated_packet is None:
+            # Packet dropped again!
+            self.metrics_collector.record_packet_lost(self.session_id)
+            return
+            
         if packet.protocol_used == Protocol.TCP:
-            await self.tcp_client.send_packet(packet)
+            await self.tcp_client.send_packet(emulated_packet)
         else:
-            await self.udp_client.send_packet(packet)
+            await self.udp_client.send_packet(emulated_packet)
     
     async def _handle_received_packet(self, packet: Packet):
         """Handle received packet."""

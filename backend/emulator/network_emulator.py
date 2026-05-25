@@ -72,12 +72,8 @@ class NetworkEmulator:
             # Add small random delay to cause reordering
             await asyncio.sleep(random.uniform(0.01, 0.05))
         
-        # Bandwidth throttling
-        if self.conditions.bandwidth_mbps > 0:
-            packet_size_bits = len(packet.payload) * 8
-            bandwidth_bps = self.conditions.bandwidth_mbps * 1_000_000
-            transmission_time = packet_size_bits / bandwidth_bps
-            await asyncio.sleep(transmission_time)
+        # Bandwidth throttling is now handled sequentially in the SimulationEngine send loop
+        # to correctly model the physical wire bottleneck.
         
         return packet
     

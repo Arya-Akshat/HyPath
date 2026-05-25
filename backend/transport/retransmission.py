@@ -4,7 +4,7 @@ import asyncio
 import time
 import logging
 from typing import Dict, Set, Optional, Callable
-from backend.core.models import Packet, PacketType
+from backend.core.models import Packet, PacketType, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,9 @@ class RetransmissionManager:
     
     async def send_packet(self, packet: Packet):
         """Register packet for ACK tracking."""
+        if packet.protocol_used != Protocol.TCP:
+            return
+            
         self.stats["packets_sent"] += 1
         
         # Store packet info

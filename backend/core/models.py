@@ -133,11 +133,11 @@ class PathMetrics:
     def calculate_score(self) -> float:
         """Calculate path quality score (0-100)."""
         # Weighted scoring algorithm
-        rtt_score = max(0, 100 - (self.rtt * 10))  # Lower RTT is better
-        loss_score = max(0, 100 - (self.loss_rate * 100))  # Lower loss is better
-        jitter_score = max(0, 100 - (self.jitter * 20))  # Lower jitter is better
-        throughput_score = min(100, self.throughput / 10)  # Higher throughput is better
-        congestion_score = max(0, 100 - (self.congestion_level * 100))  # Lower congestion is better
+        rtt_score = max(0, 100 - (self.rtt * 200))  # 50ms -> 90
+        loss_score = max(0, 100 - (self.loss_rate * 500))  # 2% -> 90
+        jitter_score = max(0, 100 - (self.jitter * 500))  # 10ms -> 95
+        throughput_score = min(100, self.throughput)  # 50Mbps -> 50
+        congestion_score = max(0, 100 - (self.congestion_level * 100))
         
         # Weighted average
         score = (

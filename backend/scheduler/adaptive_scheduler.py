@@ -130,10 +130,7 @@ class AdaptiveScheduler:
         }
         self.routing_decisions.append(decision)
         
-        logger.debug(f"Routing decision: packet={packet.packet_id}, "
-                    f"priority={packet.priority.name}, "
-                    f"protocol={selected_protocol.value}, "
-                    f"reason={reason}")
+        logger.info(f"[DEBUG ROUTING] packet={packet.packet_id}, priority={packet.priority.name}, protocol={selected_protocol.value}, reason={reason}")
         
         return selected_protocol
     

@@ -376,3 +376,23 @@ This project is for educational and research purposes.
 - [ ] Packet capture (pcap) export
 - [ ] Advanced congestion control algorithms
 
+
+
+## Simulation Benchmark Results
+
+These results demonstrate the performance of pure TCP, pure UDP, and the Adaptive Hybrid Engine across various network scenarios.
+
+| Scenario | Mode | Delivery Ratio | Avg Latency | Retransmissions | Protocol Split |
+|---|---|---|---|---|---|
+| Good | TCP | 100.0% | 20.3 ms | 0 | 200 TCP / 0 UDP |
+| Good | UDP | 100.0% | 19.7 ms | 0 | 0 TCP / 200 UDP |
+| Good | **HYBRID** | 99.5% | 26.4 ms | 0 | 100 TCP / 100 UDP |
+| Moderate | TCP | 100.0% | 89.6 ms | 3 | 200 TCP / 0 UDP |
+| Moderate | UDP | 96.5% | 58.9 ms | 0 | 0 TCP / 200 UDP |
+| Moderate | **HYBRID** | 98.0% | 83.2 ms | 2 | 100 TCP / 100 UDP |
+| Poor | TCP | 100.0% | 245.8 ms | 9 | 200 TCP / 0 UDP |
+| Poor | UDP | 93.5% | 155.1 ms | 0 | 0 TCP / 200 UDP |
+| Poor | **HYBRID** | 97.5% | 235.0 ms | 8 | 100 TCP / 100 UDP |
+| Drone Telemetry | TCP | 100.0% | 157.6 ms | 7 | 200 TCP / 0 UDP |
+| Drone Telemetry | UDP | 95.5% | 87.7 ms | 0 | 0 TCP / 200 UDP |
+| Drone Telemetry | **HYBRID** | 98.0% | 124.2 ms | 3 | 100 TCP / 100 UDP |

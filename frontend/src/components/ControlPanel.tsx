@@ -11,7 +11,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ isRunning, onStatusC
   const [mode, setMode] = useState('HYBRID');
   const [scenario, setScenario] = useState('moderate');
   const [priority, setPriority] = useState('BULK');
-  const [packetCount, setPacketCount] = useState(1000);
+  const [packetCount, setPacketCount] = useState(50);
 
   const handleStart = async () => {
     try {
