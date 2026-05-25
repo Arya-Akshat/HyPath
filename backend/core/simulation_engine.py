@@ -96,8 +96,41 @@ class SimulationEngine:
         # Start packet processor
         asyncio.create_task(self._process_send_queue())
         
+        # Start path metrics updater
+        asyncio.create_task(self._update_path_metrics())
+        
         await self._emit_event("simulation_started", {"session_id": self.session_id})
         logger.info("Simulation engine started")
+        
+    async def _update_path_metrics(self):
+        """Periodically update path metrics for the scheduler."""
+        from backend.core.models import PathMetrics
+        while self.running:
+            try:
+                cond = self.emulator.conditions
+                # TCP: higher latency (overhead/retransmits), reliable delivery
+                tcp_m = PathMetrics(
+                    path_id=0,
+                    protocol=Protocol.TCP,
+                    rtt=(cond.latency_ms * 1.2 + (cond.packet_loss_rate * 200)) / 1000.0,
+                    jitter=(cond.jitter_ms * 1.1) / 1000.0,
+                    loss_rate=0.0,
+                    throughput=cond.bandwidth_mbps * 0.9
+                )
+                # UDP: lower latency, but experiences actual loss
+                udp_m = PathMetrics(
+                    path_id=1,
+                    protocol=Protocol.UDP,
+                    rtt=cond.latency_ms / 1000.0,
+                    jitter=cond.jitter_ms / 1000.0,
+                    loss_rate=cond.packet_loss_rate,
+                    throughput=cond.bandwidth_mbps
+                )
+                self.scheduler.update_tcp_metrics(tcp_m)
+                self.scheduler.update_udp_metrics(udp_m)
+            except Exception as e:
+                logger.error(f"Error updating path metrics: {e}")
+            await asyncio.sleep(1.0)
     
     async def stop(self):
         """Stop simulation engine."""

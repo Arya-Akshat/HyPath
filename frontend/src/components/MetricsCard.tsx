@@ -8,6 +8,14 @@ interface MetricsCardProps {
   color?: string;
 }
 
+const iconColorMap: Record<string, string> = {
+  blue: 'bg-sky-50 text-sky-500',
+  green: 'bg-emerald-50 text-emerald-500',
+  red: 'bg-red-50 text-red-500',
+  yellow: 'bg-amber-50 text-amber-500',
+  purple: 'bg-violet-50 text-violet-500',
+};
+
 export const MetricsCard: React.FC<MetricsCardProps> = ({
   title,
   value,
@@ -15,23 +23,45 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
   icon,
   color = 'blue',
 }) => {
-  const colorClasses = {
-    blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
-    green: 'bg-green-500/10 border-green-500/20 text-green-400',
-    red: 'bg-red-500/10 border-red-500/20 text-red-400',
-    yellow: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400',
-    purple: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
-  };
+  const badgeClasses = iconColorMap[color] ?? iconColorMap.blue;
 
   return (
-    <div className={`rounded-lg border p-4 ${colorClasses[color as keyof typeof colorClasses] || colorClasses.blue}`}>
+    <div
+      className="bg-white/70 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-5 shadow-glass
+                 hover:shadow-card-hover hover:border-primary/30
+                 cursor-default"
+      style={{
+        transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+      }}
+    >
       <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm opacity-70">{title}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-          {subtitle && <p className="text-xs opacity-60 mt-1">{subtitle}</p>}
+        {/* Left: title + value + subtitle */}
+        <div className="flex-1 min-w-0">
+          <p className="uppercase text-xs font-semibold tracking-wider text-text-muted">
+            {title}
+          </p>
+          <p className="text-3xl font-bold text-text-primary mt-2 metric-value">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-text-secondary mt-1">{subtitle}</p>
+          )}
         </div>
-        {icon && <div className="ml-4 opacity-50">{icon}</div>}
+
+        {/* Right: icon badge */}
+        {icon && (
+          <div
+            className={`p-3 rounded-xl flex items-center justify-center shrink-0 ${badgeClasses}`}
+          >
+            {icon}
+          </div>
+        )}
       </div>
     </div>
   );

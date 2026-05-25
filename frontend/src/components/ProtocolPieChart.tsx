@@ -1,48 +1,120 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from 'recharts';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 interface ProtocolPieChartProps {
   tcpPackets: number;
   udpPackets: number;
 }
 
-export const ProtocolPieChart: React.FC<ProtocolPieChartProps> = ({ tcpPackets, udpPackets }) => {
+const COLORS = {
+  TCP: '#0ea5e9',
+  UDP: '#8b5cf6',
+} as const;
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  const { name, value } = payload[0];
+  return (
+    <div className="bg-white border border-border-subtle rounded-xl shadow-lg px-4 py-3 text-text-primary">
+      <p className="text-sm">
+        <span className="font-medium" style={{ color: COLORS[name as keyof typeof COLORS] }}>
+          {name}:
+        </span>{' '}
+        {value.toLocaleString()} packets
+      </p>
+    </div>
+  );
+};
+
+const renderCustomLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius: _innerRadius,
+  outerRadius,
+  percent,
+  name,
+}: any) => {
+  const RADIAN = Math.PI / 180;
+  const radius = outerRadius + 24;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent === 0) return null;
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#1e293b"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      className="text-xs font-medium"
+    >
+      {name} {(percent * 100).toFixed(0)}%
+    </text>
+  );
+};
+
+export const ProtocolPieChart: React.FC<ProtocolPieChartProps> = ({
+  tcpPackets,
+  udpPackets,
+}) => {
   const data = [
-    { name: 'TCP', value: tcpPackets, color: '#3B82F6' },
-    { name: 'UDP', value: udpPackets, color: '#10B981' },
+    { name: 'TCP', value: tcpPackets },
+    { name: 'UDP', value: udpPackets },
   ];
 
   const total = tcpPackets + udpPackets;
 
   return (
-    <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
-      <h3 className="text-lg font-semibold mb-4 text-gray-200">Protocol Distribution</h3>
+    <div className="glass-card-static p-5">
+      <h3 className="text-title font-semibold text-text-primary mb-4 flex items-center gap-2">
+        <PieChartIcon className="h-5 w-5 text-udp" />
+        Protocol Distribution
+      </h3>
       {total > 0 ? (
         <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
+          <RechartsPieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              innerRadius={50}
               outerRadius={80}
-              fill="#8884d8"
+              paddingAngle={3}
               dataKey="value"
+              label={renderCustomLabel}
+              labelLine={false}
+              strokeWidth={0}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[entry.name as keyof typeof COLORS]}
+                />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
-              labelStyle={{ color: '#E5E7EB' }}
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              iconType="circle"
+              wrapperStyle={{ fontSize: '12px', color: '#64748b' }}
+              formatter={(value: string) => (
+                <span className="text-text-secondary text-sm">{value}</span>
+              )}
             />
-            <Legend />
-          </PieChart>
+          </RechartsPieChart>
         </ResponsiveContainer>
       ) : (
-        <div className="h-[250px] flex items-center justify-center text-gray-500">
+        <div className="h-[250px] flex items-center justify-center text-text-muted text-sm">
           No data available
         </div>
       )}

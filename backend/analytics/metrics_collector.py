@@ -63,8 +63,9 @@ class SessionMetrics:
     
     def calculate_throughput(self) -> float:
         """Calculate throughput in Mbps."""
-        duration = self.end_time - self.start_time
-        if duration == 0:
+        current_end = self.end_time if self.end_time > 0 else time.time()
+        duration = current_end - self.start_time
+        if duration <= 0:
             return 0.0
         bits = self.bytes_received * 8
         return (bits / duration) / 1_000_000

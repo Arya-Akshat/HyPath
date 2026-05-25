@@ -23,4 +23,4 @@ echo ""
 echo "Starting backend server on http://localhost:8000"
 echo "API Documentation: http://localhost:8000/docs"
 echo ""
-python3 backend/main.py
+python3 -m backend.main
