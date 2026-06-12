@@ -37,8 +37,6 @@ export const NetworkTopology: React.FC<NetworkTopologyProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const [packets, setPackets] = useState<PacketDot[]>([]);
-  const nextIdRef = useRef(0);
-  const intervalRefs = useRef<ReturnType<typeof setInterval>[]>([]);
 
   /* ─── Mouse tracking ─── */
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -69,7 +67,7 @@ export const NetworkTopology: React.FC<NetworkTopologyProps> = ({
         newPackets.push({
           id: e.id,
           protocol: e.protocol as 'TCP' | 'UDP',
-          duration: e.protocol === 'TCP' ? 2 : 1.2, // Flight animation duration
+          duration: e.protocol === 'TCP' ? 4 : 2.5, // Flight animation duration (slower for observation)
           createdAt: Date.now(),
         });
       }

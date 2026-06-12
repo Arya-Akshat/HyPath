@@ -79,4 +79,27 @@ export const api = {
     const response = await fetch(`${API_BASE}/metrics/comparison`);
     return response.json();
   },
+
+  async getValidation() {
+    const response = await fetch(`${API_BASE}/metrics/validation`);
+    return response.json();
+  },
+
+  async verifyNs3Path(ns3_path: string) {
+    const response = await fetch(`${API_BASE}/ns3/verify-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ns3_path }),
+    });
+    return response.json();
+  },
+
+  async runNs3Simulation(ns3_path: string, scenario: string, tcp_packets: number, udp_packets: number) {
+    const response = await fetch(`${API_BASE}/ns3/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ns3_path, scenario, tcp_packets, udp_packets }),
+    });
+    return response.json();
+  },
 };

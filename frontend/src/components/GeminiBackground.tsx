@@ -3,19 +3,13 @@ import React, { useEffect, useRef } from 'react';
 interface Orb {
   x: number;
   y: number;
-  targetX: number;
-  targetY: number;
   vx: number;
   vy: number;
   radius: number;
   color: string;
-  alpha: number;
-  angle: number;
-  orbitRadius: number;
-  orbitSpeed: number;
   depth: number;
-  baseX: number;
-  baseY: number;
+  wanderAngle: number;
+  wanderSpeed: number;
 }
 
 export const GeminiBackground: React.FC = () => {
@@ -41,42 +35,23 @@ export const GeminiBackground: React.FC = () => {
       'rgba(236, 72, 153, 0.7)', // Pink
     ];
 
-    // Initialize globular beads arranged in concentric rings (co-circular formations)
+    // Scatter orbs randomly across the full canvas
     const orbs: Orb[] = [];
-    const ringCount = 5;
-    const beadsPerRing = [16, 24, 32, 40, 52]; // Doubled number of beads per ring
-    const ringRadii = [150, 300, 480, 700, 950]; // Increased radii for more distance between rings
+    const ORB_COUNT = 80;
 
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    for (let r = 0; r < ringCount; r++) {
-      const radius = ringRadii[r];
-      const count = beadsPerRing[r];
-
-      for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2 + (Math.random() * 0.4 - 0.2);
-        const orbitSpeed = (0.0003 + Math.random() * 0.0006) * (r % 2 === 0 ? 1 : -1);
-        const depth = 0.5 + (r / ringCount) * 1.0; // Foreground/background scaling
-
-        orbs.push({
-          x: centerX + Math.cos(angle) * radius,
-          y: centerY + Math.sin(angle) * radius,
-          targetX: centerX + Math.cos(angle) * radius,
-          targetY: centerY + Math.sin(angle) * radius,
-          vx: 0,
-          vy: 0,
-          radius: 4 + Math.random() * 6 + (1 - depth) * 4, // Decreased size by more than half
-          color: colors[Math.floor(Math.random() * colors.length)],
-          alpha: 0.4 + Math.random() * 0.4,
-          angle,
-          orbitRadius: radius,
-          orbitSpeed,
-          depth,
-          baseX: centerX,
-          baseY: centerY,
-        });
-      }
+    for (let i = 0; i < ORB_COUNT; i++) {
+      const depth = 0.4 + Math.random() * 0.9;
+      orbs.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        radius: 8 + Math.random() * 22 * depth,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        depth,
+        wanderAngle: Math.random() * Math.PI * 2,
+        wanderSpeed: 0.002 + Math.random() * 0.004,
+      });
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -92,11 +67,6 @@ export const GeminiBackground: React.FC = () => {
     const handleResize = () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
-      
-      orbs.forEach(orb => {
-        orb.baseX = width / 2;
-        orb.baseY = height / 2;
-      });
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -118,43 +88,36 @@ export const GeminiBackground: React.FC = () => {
       ctx.globalCompositeOperation = 'source-over'; 
       
       orbs.forEach(orb => {
-        orb.angle += orb.orbitSpeed;
-        
-        // Gentle organic pulsing in radius
-        const pulse = Math.sin(orb.angle * 3) * 20;
-        const targetOrbitRadius = orb.orbitRadius + pulse;
+        // Slowly rotate wander direction for organic drift
+        orb.wanderAngle += orb.wanderSpeed;
+        orb.vx += Math.cos(orb.wanderAngle) * 0.02;
+        orb.vy += Math.sin(orb.wanderAngle) * 0.02;
 
-        const homeX = orb.baseX + Math.cos(orb.angle) * targetOrbitRadius;
-        const homeY = orb.baseY + Math.sin(orb.angle) * targetOrbitRadius;
+        // Clamp speed
+        const speed = Math.sqrt(orb.vx * orb.vx + orb.vy * orb.vy);
+        const maxSpeed = 1.2;
+        if (speed > maxSpeed) { orb.vx = (orb.vx / speed) * maxSpeed; orb.vy = (orb.vy / speed) * maxSpeed; }
 
-        let dx = mouse.x - homeX;
-        let dy = mouse.y - homeY;
+        // Mouse push-away influence
+        const dx = orb.x - mouse.x;
+        const dy = orb.y - mouse.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-
-        let targetX = homeX;
-        let targetY = homeY;
-
-        if (mouse.isHovering || dist < 400) {
-          const maxInfluence = 400;
-          const force = (maxInfluence - Math.min(dist, maxInfluence)) / maxInfluence; 
-          
-          // Smooth halo effect around the cursor:
-          // Pushes away if too close, pulls in if inside the influence radius
-          const targetDist = 140 * orb.depth; 
-          const pushPull = (dist - targetDist) * 0.5 * force;
-          
-          if (dist > 0) {
-            targetX += (dx / dist) * pushPull;
-            targetY += (dy / dist) * pushPull;
-          }
+        const influence = 220;
+        if (dist < influence && dist > 0) {
+          const force = ((influence - dist) / influence) * 1.8;
+          orb.vx += (dx / dist) * force * 0.3;
+          orb.vy += (dy / dist) * force * 0.3;
         }
 
-        const parallaxFactor = 0.06 * (orb.depth - 0.5);
-        targetX += (mouse.x - width / 2) * parallaxFactor;
-        targetY += (mouse.y - height / 2) * parallaxFactor;
+        orb.x += orb.vx;
+        orb.y += orb.vy;
 
-        orb.x += (targetX - orb.x) * 0.06;
-        orb.y += (targetY - orb.y) * 0.06;
+        // Wrap around edges with a small margin
+        const margin = orb.radius;
+        if (orb.x < -margin) orb.x = width + margin;
+        if (orb.x > width + margin) orb.x = -margin;
+        if (orb.y < -margin) orb.y = height + margin;
+        if (orb.y > height + margin) orb.y = -margin;
 
         // Draw soft glowing blob
         const grad = ctx.createRadialGradient(

@@ -233,3 +233,14 @@ input[type="range"]::-moz-range-thumb {
 .metric-value {
   animation: count-up 0.4s ease-out;
 }
+
+/* Disable spinners/arrows on input type="number" */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}

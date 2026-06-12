@@ -19,6 +19,7 @@ export interface Metrics {
   retransmission: RetransmissionMetrics;
   reassembly: ReassemblyMetrics;
   emulator: EmulatorMetrics;
+  conditions?: NetworkConditions;
 }
 
 export interface SessionMetrics {

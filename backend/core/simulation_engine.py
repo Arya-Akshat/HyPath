@@ -177,11 +177,14 @@ class SimulationEngine:
                 packet = await asyncio.wait_for(self.send_queue.get(), timeout=0.1)
                 
                 # Sequential bandwidth bottleneck
+                pacing_delay = 0.05  # 50ms minimum pacing delay to decrease simulation speed
                 if self.emulator.conditions.bandwidth_mbps > 0:
                     packet_size_bits = len(packet.payload) * 8
                     bandwidth_bps = self.emulator.conditions.bandwidth_mbps * 1_000_000
                     transmission_time = packet_size_bits / bandwidth_bps
-                    await asyncio.sleep(transmission_time)
+                    await asyncio.sleep(max(transmission_time, pacing_delay))
+                else:
+                    await asyncio.sleep(pacing_delay)
                 
                 # Concurrent latency and delivery
                 asyncio.create_task(self._send_packet(packet))
@@ -368,5 +371,16 @@ class SimulationEngine:
             "scheduler": self.scheduler.get_stats(),
             "retransmission": self.retransmission_mgr.get_stats(),
             "reassembly": self.reassembly_engine.get_stats(),
-            "emulator": self.emulator.get_stats()
+            "emulator": self.emulator.get_stats(),
+            "conditions": {
+                "latency_ms": self.emulator.conditions.latency_ms,
+                "jitter_ms": self.emulator.conditions.jitter_ms,
+                "packet_loss_rate": self.emulator.conditions.packet_loss_rate,
+                "bandwidth_mbps": self.emulator.conditions.bandwidth_mbps,
+                "corruption_rate": self.emulator.conditions.corruption_rate,
+                "duplication_rate": self.emulator.conditions.duplication_rate,
+                "reorder_rate": self.emulator.conditions.reorder_rate,
+                "congestion_level": self.emulator.conditions.congestion_level
+            }
         }
+

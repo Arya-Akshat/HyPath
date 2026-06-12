@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Network, Activity, Zap, TrendingUp, Timer, BarChart3, AlertTriangle, CheckCircle, Gauge } from 'lucide-react';
+import { Network, Activity, Zap, TrendingUp, Timer, BarChart3, AlertTriangle, CheckCircle, Gauge, ShieldCheck } from 'lucide-react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { api } from './services/api';
 import { HeroSection } from './components/HeroSection';
@@ -11,6 +11,7 @@ import { ProtocolPieChart } from './components/ProtocolPieChart';
 import { ThroughputChart } from './components/ThroughputChart';
 import { ControlPanel } from './components/ControlPanel';
 import { GeminiBackground } from './components/GeminiBackground';
+import { ValidationDashboard } from './components/ValidationDashboard';
 import { Metrics } from './types';
 
 interface PacketEvent {
@@ -34,6 +35,7 @@ function App() {
   const [packetEvents, setPacketEvents] = useState<PacketEvent[]>([]);
   const [telemetryEvents, setTelemetryEvents] = useState<RawEvent[]>([]);
   const [mode, setMode] = useState('HYBRID');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'validation'>('simulator');
 
   const ws = useWebSocket('ws://localhost:3000/ws');
 
@@ -214,12 +216,41 @@ function App() {
                 <span>{isRunning ? 'Simulation Running' : 'Idle'}</span>
               </div>
             </div>
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 bg-slate-100/80 rounded-xl p-1">
+              <button
+                onClick={() => setActiveTab('simulator')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'simulator'
+                    ? 'bg-white shadow-sm text-primary'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                Simulator
+              </button>
+              <button
+                onClick={() => setActiveTab('validation')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'validation'
+                    ? 'bg-white shadow-sm text-emerald-600'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                ns-3 Verification
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+        {activeTab === 'validation' ? (
+          <ValidationDashboard liveMetrics={metrics} isRunning={isRunning} mode={mode} />
+        ) : (
+          <>
         {/* Hero Section */}
         <HeroSection />
 
@@ -364,6 +395,8 @@ function App() {
               </p>
             </div>
           </section>
+        )}
+        </>
         )}
       </main>
 
